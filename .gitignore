@@ -1,3 +1,11 @@
+# Various folders
+target/
+.settings/
+
+# VS Code files
+.classpath
+.project
+
 # Compiled class file
 *.class
 
