@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: imagestream-template
+metadata:
+  annotations:
+    description: Template for creating an image stream.
+  creationTimestamp: null
+  name: imagestream-template
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: imagestream-template
+    labels:
+      pipeline: ${REVISION}
+      app: ${APP_NAME}
+    name: ${IMAGESTREAM_NAME}
+  spec: {}
+parameters:
+- name: APP_NAME
+  description: Application name
+  required: true
+- name: IMAGESTREAM_NAME
+  description: Name of imagestream where the app images are built to.
+  required: true
+- name: REVISION
+  description: Pipeline revision, default is release
+  value: release
+  required: true  
+message: Created image stream ${TARGET_IMAGESTREAM}.

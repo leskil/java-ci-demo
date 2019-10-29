@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: binary-s2i-template
+metadata:
+  annotations:
+    description: Template for creating a build configuration for binary S2I builds.
+  creationTimestamp: null
+  name: binary-s2i-template
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: binary-s2i-template
+    creationTimestamp: null
+    labels:
+      app: ${APP_NAME}
+      pipeline: ${REVISION}
+    name: ${NAME}
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${TARGET_IMAGESTREAM}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      binary: {}
+      type: Binary
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ${BASE_IMAGESTREAM}:${BASE_IMAGE_TAG}
+          namespace: ${BASE_IMAGESTREAM_NAMESPACE}
+      type: Source
+    triggers:
+    - generic:
+        secret: ${GENERIC_TRIGGER_SECRET_VALUE}
+      type: Generic
+  status:
+    lastVersion: 0
+parameters:
+- name: NAME
+  description: Build config name
+  required: true
+- name: APP_NAME
+  description: Application name
+  required: true
+- name: GENERIC_TRIGGER_SECRET_VALUE
+  generate: expression
+  from: "[A-Za-z0-9]{20}"
+  required: true
+- name: TARGET_IMAGESTREAM
+  description: Name of imagestream where app images are built to
+  value: s2i-build
+  required: true
+- name: BASE_IMAGESTREAM_NAMESPACE
+  description: Namespace where the source imagestream is
+  required: true
+  value: openshift
+- name: BASE_IMAGESTREAM
+  description: Name of imagestream where base image is
+  required: true
+- name: BASE_IMAGE_TAG
+  description: Image tag for the base image
+  required: true
+  value: latest
+- name: REVISION
+  description: Pipeline revision, default is release
+  value: release
+  required: true  
+message: Created binary s2i build configuration for ${APP_NAME}. Github secret is ${GITHUB_TRIGGER_SECRET_VALUE}, generic secret is ${GENERIC_TRIGGER_SECRET_VALUE}. Target image stream is ${TARGET_IMAGESTREAM}.
