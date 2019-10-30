@@ -13,18 +13,18 @@
  */
 
 // Common parameters
-APP_NAME="Red Hat Sample"
+APP_NAME="Red-Hat-Sample"
 
 // SCM parameters
 GIT_URL="https://github.com/leskil/java-ci-demo"
 GIT_BRANCH="master"
 
 // Environments
-BUILD_NAMESPACE="build"
+BUILD_NAMESPACE="builds"
 DEV_NAMESPACE="dev"
 TEST_NAMESPACE="test"
-IMAGESTREAM_NAME=APP_NAME
-BUILD_CONFIG_NAME=APP_NAME
+IMAGESTREAM_NAME="redhat-sample"
+BUILD_CONFIG_NAME="redhat-sample"
 
 // Convinience variables
 MVN_CMD="mvn" // TODO: Use external config
@@ -136,14 +136,13 @@ pipeline {
          */
         stage('BUILD - Create image in build namespace') {
             steps {
-                dir('src') {
-                    script {
-                        openshift.withProject(DEV_NAMESPACE) {
+                script {
+                    openshift.withProject(BUILD_NAMESPACE) {
 
-                            createImageStream(IMAGESTREAM_NAME, APP_NAME, DEV_NAMESPACE)
+                        createImageStream(IMAGESTREAM_NAME, APP_NAME, BUILD_NAMESPACE)
 
-                            def bc = openshift.selector("bc/${BUILD_CONFIG_NAME}")
-                            if(!bc.exists()) {
+                        def bc = openshift.selector("bc/${BUILD_CONFIG_NAME}")
+                        if(!bc.exists()) {
                             def build_obj = openshift.process(readFile(file:'build/binary-s2i-template.yaml'),
                                                     '-p', "APP_NAME=${APP_NAME}",
                                                     '-p', "NAME=${BUILD_CONFIG_NAME}",
@@ -154,7 +153,9 @@ pipeline {
                                                     '-p', "REVISION=development")
 
                             openshift.create(build_obj)
-                            }
+                        }
+
+                        //dir('src') {                    
 
                             bc.startBuild('--from-dir=src/target/')
                             def builds = bc.related('builds')
@@ -165,7 +166,7 @@ pipeline {
                             }
 
                             openshift.tag("${DEV_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${DEV_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
-                        }
+                        //}
                     }
                 }
             }
@@ -186,7 +187,7 @@ def createImageStream(name, appName, namespace) {
     openshift.withProject(namespace) {
         def is = openshift.selector('is', name);
         if(!is.exists()) {
-            def isObj = openshift.process(readFile(file:'src/openshift/templates/imagestream-template.yaml'), 
+            def isObj = openshift.process(readFile(file:'build/imagestream-template.yaml'), 
                     '-p', "APP_NAME=${appName}", 
                     '-p', "IMAGESTREAM_NAME=${name}", 
                     '-p', "REVISION=development")
