@@ -1,16 +1,4 @@
 #!groovy
-/* 
- *  1. Skal der laves noget init? Ryddes op i build containeren? Findes versionsnumre?
- *  2. SCM checkout
- *  3. Maven build (uden tests)
- *  4. Paralelt: Kør unit tests og code analysis
- *     SonarQube token: 2dad05e4a4f5c056ee9f83760fa8e6cdc079b8b4
- *  5. Publish to Nexus
- *  6. Create image in build namespace
- *  7. Deploy image to dev namespace
- *  8. (Run tests against dev namespace)
- *  9. Deploy same image to test namespace
- */
 
 // Common parameters
 APP_NAME="Red-Hat-Sample"
