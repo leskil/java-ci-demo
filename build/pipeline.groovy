@@ -14,6 +14,9 @@
 
 // Common parameters
 APP_NAME="Red-Hat-Sample"
+BASE_IMAGE_NAMESPACE="openshift"
+BASE_IMAGE="java"
+BASE_IMAGE_TAG="8"
 
 // SCM parameters
 GIT_URL="https://github.com/leskil/java-ci-demo"
@@ -146,27 +149,24 @@ pipeline {
                             def build_obj = openshift.process(readFile(file:'build/binary-s2i-template.yaml'),
                                                     '-p', "APP_NAME=${APP_NAME}",
                                                     '-p', "NAME=${BUILD_CONFIG_NAME}",
-                                                    '-p', "BASE_IMAGESTREAM_NAMESPACE=${BUILD_NAMESPACE}",
-                                                    '-p', "BASE_IMAGESTREAM=${IMAGESTREAM_NAME}",
-                                                    '-p', "BASE_IMAGE_TAG=${DEV_TAG}",
+                                                    '-p', "BASE_IMAGESTREAM_NAMESPACE=${BASE_IMAGE_NAMESPACE}",
+                                                    '-p', "BASE_IMAGESTREAM=${BASE_IMAGE}",
+                                                    '-p', "BASE_IMAGE_TAG=${BASE_IMAGE_TAG}",
                                                     '-p', "TARGET_IMAGESTREAM=${IMAGESTREAM_NAME}",
                                                     '-p', "REVISION=development")
 
                             openshift.create(build_obj)
                         }
 
-                        //dir('src') {                    
-
-                            bc.startBuild('--from-dir=src/target/')
-                            def builds = bc.related('builds')
-                            timeout(60) {
-                                builds.untilEach(1) {
-                                    return it.object().status.phase == 'Complete'
-                                }
+                        bc.startBuild('--from-dir=src/target/')
+                        def builds = bc.related('builds')
+                        timeout(60) {
+                            builds.untilEach(1) {
+                                return it.object().status.phase == 'Complete'
                             }
+                        }
 
-                            openshift.tag("${DEV_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${DEV_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
-                        //}
+                        openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
                     }
                 }
             }
