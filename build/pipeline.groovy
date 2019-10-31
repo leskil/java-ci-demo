@@ -19,9 +19,9 @@ BUILD_CONFIG_NAME="redhat-sample"
 
 // Convinience variables
 MVN_CMD="mvn" // TODO: Use external config
-SONARQUBE_URL="" //"https://sonarqube-sonarqube.apps.na311.openshift.opentlc.com" // Leave empty to disable
-SONARQUBE_TOKEN="2dad05e4a4f5c056ee9f83760fa8e6cdc079b8b4"
-NEXUS_URL="" // Leave empty to disable
+SONARQUBE_URL=""    // Leave empty to disable
+SONARQUBE_TOKEN=""
+NEXUS_URL=""        // Leave empty to disable
 
 // Runtime variables
 DEV_TAG=""
