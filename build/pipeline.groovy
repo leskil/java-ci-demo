@@ -1,29 +1,46 @@
 #!groovy
 
-// Common parameters
+/* 
+ * Common application specific parameters
+ * @APP_NAME: The name of the application. Cannot contains spaces and special characters.
+ * @GIT_URL: The URL to the git repository.
+ * @GIT_BRANCH: The branch to deploy
+ * @BASE_IMAGE: Defines which base image is used for the application.
+ * @BASE_IMAGE_TAG: The tag of the image. Prefer a specific version over latest.
+ * @BASE_IMAGE_NAMESPACE: The namespace (case sensitive) where the base image resides. 
+ */
 APP_NAME="Red-Hat-Sample"
-BASE_IMAGE_NAMESPACE="openshift"
-BASE_IMAGE="java"
-BASE_IMAGE_TAG="8"
-
-// SCM parameters
 GIT_URL="https://github.com/leskil/java-ci-demo"
 GIT_BRANCH="master"
+BASE_IMAGE="java"
+BASE_IMAGE_TAG="8"
+BASE_IMAGE_NAMESPACE="openshift"
 
-// Environments
+/* 
+ * Openshift environments
+ * @BUILD_NAMESPACE: The project where Jenkins is installed and builds are created.
+ * @DEV_NAMESPACE: The development project to promote the build to.
+ * @IMAGE_STREAM_NAME: The name of the image stream created.
+ * @BUILD_CONFIG_NAME: The name of the build config.
+ */
 BUILD_NAMESPACE="builds"
 DEV_NAMESPACE="dev"
-TEST_NAMESPACE="test"
 IMAGESTREAM_NAME="redhat-sample"
 BUILD_CONFIG_NAME="redhat-sample"
 
-// Convinience variables
+/*
+ * Additional settings.
+ * @MVN_CMD: The Maven command to run. Handy if you are using an external configuration file.
+ * @SONARQUBE_URL: The URL to Sonarqube. Leave it empty to disable Sonarqube.
+ * @SONARQUBE_TOKEN: The access token for Sonarqube. Cannot be empty, if SONARQUBE_URL is used.
+ * @NEXUS_URL: The URL to Nexus, where binaries are pushed to. Leave it empty to disable Nexus.
+ */
 MVN_CMD="mvn" // TODO: Use external config
-SONARQUBE_URL=""    // Leave empty to disable
+SONARQUBE_URL=""
 SONARQUBE_TOKEN=""
-NEXUS_URL=""        // Leave empty to disable
+NEXUS_URL=""    
 
-// Runtime variables
+// Runtime variables - do not set here.
 DEV_TAG=""
 PROD_TAG=""
 
@@ -39,7 +56,9 @@ pipeline {
 
     stages {
 
-        // Delete local source files in the build container
+        /*
+         * Delete local source files in the build container.
+         */
         stage('Init') {
 
             steps {
@@ -47,7 +66,10 @@ pipeline {
             }
         }
 
-        // Pull the source code from Git
+        /*
+         * Pull the source code from Git.
+         * Note: If needed, credentials should be created in Jenkins and passed to git using the 'credentials' parameter.
+         */
         stage('Pull from Git') {
             steps {
                 echo "Cloning branch '${GIT_BRANCH}' from ${GIT_URL}"
@@ -55,7 +77,10 @@ pipeline {
             }
         }
 
-        // Get the version information from the POM-file
+        /* 
+         * Get the version information from the POM-file.
+         * These version numbers are later used to tag outputs such as binaries and images.
+         */
         stage('Get version information') {
             steps {
                 dir('src') {
@@ -69,7 +94,9 @@ pipeline {
             }
         }
 
-        // Execution Maven build, but do no run unit tests yet
+        /* 
+         * Execution Maven build, but do no run unit tests yet - they will be executed in the next step.
+         */
         stage('BUILD - execute Maven build') {
             steps {
                 dir('src') {
@@ -79,7 +106,11 @@ pipeline {
             }
         }
 
-        // Run unit tests and code analysis. Both can be run in parallel
+        /*
+         * Run unit tests and code analysis. Both can be run in parallel.
+         * The code analysis step is only executed, if the SONARQUBE_URL is not empty.
+         * If enabled, make sure that SONARQUBE_TOKEN contains the access token from Sonarqube.
+         */ 
         stage('BUILD - run unit tests and code analysis in parallel') {
             steps {
                 parallel(
@@ -105,7 +136,10 @@ pipeline {
             }
         }
 
-        // Push the binaries to Nexus
+        /*
+         * Push the compiled binaries to Nexus.
+         * This step is only executed, if the NEXUS_URL variable is not empty.
+         */
         stage('BUILD - Publish to Nexus') {
             steps {
                 script {
