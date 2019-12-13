@@ -15,7 +15,7 @@ objects:
     selector:
       matchLabels:
         app: ${PROJECT_NAME}
-    replicas: ${REPLICAS}
+    replicas: 3
     template:
       metadata:
         labels:
