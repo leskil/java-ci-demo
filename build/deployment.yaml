@@ -51,7 +51,3 @@ parameters:
 - name: IMAGE_STREAM
   description: The image stream to use.
   required: true
-- name: REPLICAS
-  description: The number of replicas to use.
-  required: false
-  value: "3"
