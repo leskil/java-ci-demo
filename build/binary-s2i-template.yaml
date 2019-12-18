@@ -41,6 +41,8 @@ objects:
     - generic:
         secret: ${GENERIC_TRIGGER_SECRET_VALUE}
       type: Generic
+    postCommit:
+      script: "echo Done building---------"
   status:
     lastVersion: 0
 parameters:
