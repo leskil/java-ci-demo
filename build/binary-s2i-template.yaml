@@ -42,7 +42,7 @@ objects:
         secret: ${GENERIC_TRIGGER_SECRET_VALUE}
       type: Generic
     postCommit:
-      script: "echo Done building---------"
+      script: "pwd; mkdir bctest"
   status:
     lastVersion: 0
 parameters:
