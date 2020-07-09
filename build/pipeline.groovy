@@ -189,8 +189,7 @@ pipeline {
                             //     }
                             // }
 
-                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
-                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:dev")
+                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")                            
                         }
                     }
                 }
@@ -201,7 +200,16 @@ pipeline {
             steps {
                 script {
                     openshift.withCluster() {
+
                         openshift.withProject(DEV_NAMESPACE) {
+
+                            def currentDc = openshift.selector('dc', "${APP_NAME}")
+
+                            if (currentDc.exists()) {
+                                currentDc.rollout().pause()
+                            }
+
+                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:dev")
 
                             def configmap = openshift.selector('configmap', "${APP_NAME}-config")
                             if (configmap.exists()) {
@@ -210,7 +218,7 @@ pipeline {
                             
                             configmap = openshift.create('configmap', "${APP_NAME}-config", '--from-file=./src/src/main/resources/application.properties')
 
-                            def dc = openshift.process(readFile(file:'build/dc-and-service.yaml'),
+                            def dc = openshift.process(readFile(file:'build/dc-and-service-with-config.yaml'),
                                                 '-p', "APPNAME=${APP_NAME}",
                                                 '-p', "IMAGESTREAMNAMESPACE=${BUILD_NAMESPACE}",
                                                 '-p', "IMAGESTREAM=${IMAGESTREAM_NAME}",
@@ -221,6 +229,8 @@ pipeline {
                                                 '-p', "CONFIGMAPMOUNTPATH='/data/config'")
 
                             openshift.apply(dc)
+
+                            openshift.selector('dc', "${APP_NAME}").rollout().resume()
                         }
                     }
                 }
