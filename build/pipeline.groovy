@@ -162,33 +162,35 @@ pipeline {
         stage('BUILD - Create image in build namespace') {
             steps {
                 script {
-                    openshift.withProject(BUILD_NAMESPACE) {
+                    openshift.withCluster() {
+                        openshift.withProject(BUILD_NAMESPACE) {
 
-                        createImageStream(IMAGESTREAM_NAME, APP_NAME, BUILD_NAMESPACE)
+                            createImageStream(IMAGESTREAM_NAME, APP_NAME, BUILD_NAMESPACE)
 
-                        def bc = openshift.selector("bc/${BUILD_CONFIG_NAME}")
-                        if(!bc.exists()) {
-                            def build_obj = openshift.process(readFile(file:'build/binary-s2i-template.yaml'),
-                                                    '-p', "APP_NAME=${APP_NAME}",
-                                                    '-p', "NAME=${BUILD_CONFIG_NAME}",
-                                                    '-p', "BASE_IMAGESTREAM_NAMESPACE=${BASE_IMAGE_NAMESPACE}",
-                                                    '-p', "BASE_IMAGESTREAM=${BASE_IMAGE}",
-                                                    '-p', "BASE_IMAGE_TAG=${BASE_IMAGE_TAG}",
-                                                    '-p', "TARGET_IMAGESTREAM=${IMAGESTREAM_NAME}",
-                                                    '-p', "REVISION=development")
+                            def bc = openshift.selector("bc/${BUILD_CONFIG_NAME}")
+                            if(!bc.exists()) {
+                                def build_obj = openshift.process(readFile(file:'build/binary-s2i-template.yaml'),
+                                                        '-p', "APP_NAME=${APP_NAME}",
+                                                        '-p', "NAME=${BUILD_CONFIG_NAME}",
+                                                        '-p', "BASE_IMAGESTREAM_NAMESPACE=${BASE_IMAGE_NAMESPACE}",
+                                                        '-p', "BASE_IMAGESTREAM=${BASE_IMAGE}",
+                                                        '-p', "BASE_IMAGE_TAG=${BASE_IMAGE_TAG}",
+                                                        '-p', "TARGET_IMAGESTREAM=${IMAGESTREAM_NAME}",
+                                                        '-p', "REVISION=development")
 
-                            openshift.create(build_obj)
-                        }
-
-                        bc.startBuild('--from-dir=src/target/')
-                        def builds = bc.related('builds')
-                        timeout(60) {
-                            builds.untilEach(1) {
-                                return it.object().status.phase == 'Complete'
+                                openshift.create(build_obj)
                             }
-                        }
 
-                        openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
+                            bc.startBuild('--from-dir=src/target/')
+                            def builds = bc.related('builds')
+                            timeout(60) {
+                                builds.untilEach(1) {
+                                    return it.object().status.phase == 'Complete'
+                                }
+                            }
+
+                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
+                        }
                     }
                 }
             }

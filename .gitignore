@@ -1,7 +1,7 @@
 # Various folders
 target/
 .settings/
-.DS_Store/
+.DS_Store
 
 # VS Code files
 .classpath
