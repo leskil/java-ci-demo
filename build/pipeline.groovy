@@ -181,13 +181,13 @@ pipeline {
                                 openshift.create(build_obj)
                             }
 
-                            bc.startBuild('--from-dir=src/target/')
-                            def builds = bc.related('builds')
-                            timeout(60) {
-                                builds.untilEach(1) {
-                                    return it.object().status.phase == 'Complete'
-                                }
-                            }
+                            bc.startBuild('--from-dir=src/target/', '--wait=true')
+                            // def builds = bc.related('builds')
+                            // timeout(60) {
+                            //     builds.untilEach(1) {
+                            //         return it.object().status.phase == 'Complete'
+                            //     }
+                            // }
 
                             openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
                             openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:dev")
@@ -202,13 +202,23 @@ pipeline {
                 script {
                     openshift.withCluster() {
                         openshift.withProject(DEV_NAMESPACE) {
+
+                            def configmap = openshift.selector('configmap', "${APP_NAME}-config")
+                            if (configmap.exists()) {
+                                configmap.delete()
+                            }
+                            
+                            configmap = openshift.create('configmap', "${APP_NAME}-config", '--from-file=./src/src/main/resources/application.properties')
+
                             def dc = openshift.process(readFile(file:'build/dc-and-service.yaml'),
                                                 '-p', "APPNAME=${APP_NAME}",
                                                 '-p', "IMAGESTREAMNAMESPACE=${BUILD_NAMESPACE}",
                                                 '-p', "IMAGESTREAM=${IMAGESTREAM_NAME}",
                                                 '-p', "IMAGESTREAMTAG=dev",
                                                 '-p', "SERVICEPORT=8080",
-                                                '-p', "SERVICETARGETPORT=8080")
+                                                '-p', "SERVICETARGETPORT=8080",
+                                                '-p', "CONFIGMAPNAME=${APP_NAME}-config",
+                                                '-p', "CONFIGMAPMOUNTPATH='/data/config'")
 
                             openshift.apply(dc)
                         }

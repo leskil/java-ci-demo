@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: deploymentconfig-and-service
+metadata:
+  annotations: 
+    description: Template for creating a deployment config and service
+  name: deploymentconfig-and-service
+objects:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations: 
+      openshift.io/generated-by: Pipeline
+    labels:
+      app: ${APPNAME}
+    name: ${APPNAME}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: ${APPNAME}
+      deploymentconfig: ${APPNAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: Pipeline
+        labels:
+          app: ${APPNAME}
+          deploymentconfig: ${APPNAME}
+      spec:
+        containers:
+          - image: docker-registry.default.svc:5000/${IMAGESTREAMNAMESPACE}/${IMAGESTREAM}:${IMAGESTREAMTAG}
+            imagePullPolicy: Always
+            name: ${APPNAME}
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+              - mountPath: ${CONFIGMAPMOUNTPATH}
+                name: config-volume
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+          - configMap:
+              defaultMode: 420
+              name: ${CONFIGMAPNAME}
+            name: config-volume
+    test: false
+    triggers:
+      - type: ConfigChange
+      - imageChangeParams:
+          automatic: true
+          containerNames: 
+            - ${APPNAME}
+          from:
+            kind: ImageStreamTag
+            name: '${IMAGESTREAM}:${IMAGESTREAMTAG}'
+            namespace: ${IMAGESTREAMNAMESPACE}
+        type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APPNAME}
+    name: ${APPNAME}
+  spec:
+    ports:
+      - name: default
+        port: ${{SERVICEPORT}}
+        protocol: TCP
+        targetPort: ${{SERVICETARGETPORT}}
+    selector:
+      app: ${APPNAME}
+      deploymentconfig: ${APPNAME}
+    type: ClusterIP
+parameters:
+- name: APPNAME
+  description: The name of the application
+  required: true
+- name: IMAGESTREAMNAMESPACE
+  description: The namespace where the source image resides
+  required: true
+- name: IMAGESTREAM
+  description: The name of the image stream to use
+  required: true
+- name: IMAGESTREAMTAG
+  description: The tag to use
+  required: true
+- name: SERVICEPORT
+  description: The port which the service should use
+  required: true
+- name: SERVICETARGETPORT
+  description: The target port which the service should use
+  required: true
+- name: CONFIGMAPNAME
+  description: The name of the configmap to mount
+  required: true
+- name: CONFIGMAPMOUNTPATH
+  description: The path where to mount the configmap
+  required: true
+message: Created deploymentconfig ${APPNAME} and service ${APPNAME}, using image ${IMAGESTREAMNAMESPACE}/${IMAGESTREAM}:${IMAGESTREAMTAG}
