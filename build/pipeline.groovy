@@ -9,7 +9,7 @@
  * @BASE_IMAGE_TAG: The tag of the image. Prefer a specific version over latest.
  * @BASE_IMAGE_NAMESPACE: The namespace (case sensitive) where the base image resides. 
  */
-APP_NAME="Red-Hat-Sample"
+APP_NAME="red-hat-sample"
 GIT_URL="https://github.com/leskil/java-ci-demo"
 GIT_BRANCH="master"
 BASE_IMAGE="java"
@@ -23,8 +23,8 @@ BASE_IMAGE_NAMESPACE="openshift"
  * @IMAGE_STREAM_NAME: The name of the image stream created.
  * @BUILD_CONFIG_NAME: The name of the build config.
  */
-BUILD_NAMESPACE="builds"
-DEV_NAMESPACE="dev"
+BUILD_NAMESPACE="les-ci-test-build"
+DEV_NAMESPACE="les-ci-test"
 IMAGESTREAM_NAME="redhat-sample"
 BUILD_CONFIG_NAME="redhat-sample"
 
@@ -190,6 +190,27 @@ pipeline {
                             }
 
                             openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:latest", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}")
+                            openshift.tag("${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:${DEV_TAG}", "${BUILD_NAMESPACE}/${IMAGESTREAM_NAME}:dev")
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('DEV - Deploy to development environment') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(DEV_NAMESPACE) {
+                            def dc = openshift.process(readFile(file:'build/dc-and-service.yaml'),
+                                                '-p', "APPNAME=${APP_NAME}",
+                                                '-p', "IMAGESTREAMNAMESPACE=${BUILD_NAMESPACE}",
+                                                '-p', "IMAGESTREAM=${IMAGESTREAM_NAME}",
+                                                '-p', "IMAGESTREAMTAG=dev",
+                                                '-p', "SERVICEPORT=8080",
+                                                '-p', "SERVICETARGETPORT=8080")
+
+                            openshift.apply(dc)
                         }
                     }
                 }
